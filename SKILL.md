@@ -207,6 +207,19 @@ Read: <docroot>/themes/system/admin/config/entry/body_body.html
 
 詳細ページ（`Entry_Body`）は、記事1件分の `<article>` を `entry:loop` で包み、**本文部分だけはユニット表示に差し替える**（手順2参照）。
 
+**必須：`entry:loop` の中に `@include("/admin/entry/action.html")` を入れる**（`Touch_Login` で囲む）。これが無いと**詳細ページにログイン時の編集フォーム／編集ボタンが出ず、その記事を画面から編集できない**。トップ/一覧の管理BOX（`/admin/action.html`）とは別物で、**詳細はエントリー用の `/admin/entry/action.html` を loop 内に置く**こと。
+
+```html
+<!-- BEGIN_MODULE Entry_Body id="..._body" -->
+<!-- BEGIN notFound --> ... <!-- END notFound -->
+<!-- BEGIN entry:loop -->
+  <!-- ↓ これが無いと編集フォームが出ない（必須・entry:loop の中） -->
+  <!-- BEGIN_MODULE Touch_Login --><div class="acms-form-group">@include("/admin/entry/action.html")</div><!-- END_MODULE Touch_Login -->
+  <article> ...（{title} / {date#…} / categoryField / tag:loop / unit:veil）... </article>
+<!-- END entry:loop -->
+<!-- END_MODULE Entry_Body -->
+```
+
 ### 4. a-blog cms 固有の“動かない作法”（ここは仕様。守る）
 
 マークアップが何であれ、次は固定ルール：
@@ -217,7 +230,10 @@ Read: <docroot>/themes/system/admin/config/entry/body_body.html
   <script src="%{JS_LIB_JQUERY_DIR}jquery-%{JS_LIB_JQUERY_DIR_VERSION}.min.js" charset="UTF-8"></script>
   <!-- BEGIN_MODULE Js --><script src="%{ROOT_DIR}acms.js{arguments}" charset="UTF-8" id="acms-js"></script><!-- END_MODULE Js -->
   ```
-- **管理BOX**を全ページ統一位置に：`<!-- BEGIN_MODULE Touch_Login --><div>@include("/admin/action.html")</div><!-- END_MODULE Touch_Login -->`（詳細ページは `admin/entry/action.html`）。
+- **管理BOX `@include("/admin/action.html")`（管理ページへの入口＝ログイン状態＋「管理ページ」ボタン）を、レンダリングされる全テンプレに入れる**：`<!-- BEGIN_MODULE Touch_Login --><div>@include("/admin/action.html")</div><!-- END_MODULE Touch_Login -->`。
+  - **「全テンプレ」には自分で新規作成した汎用フォールバック `index.html` / `_entry.html` も含む**。ここに入れ忘れると、そのページ（例 `/service/` や詳細）から管理ページに入れない。`_top.html`・各 `<コード>/index.html`・`<コード>/_entry.html` も同様に必須。
+  - これは「どのページにあってもよい」共通パーツ（記事に紐づかない）。次の編集フォームとは別物。
+  - **詳細ページ（Entry_Body）は別途、`entry:loop` の中に `@include("/admin/entry/action.html")` を必ず入れる**（その記事の編集フォーム／編集ボタン用。入れ忘れると詳細を画面から編集できない）。上の Entry_Body のコード例参照。
 - **`template.yaml`**（テーマ直下）。**6種すべて書き、ディレクトリは書かない**（beginner と同形）。トップは `_top.html` にリネームする（`tpl_top` と `tpl_index` が同じ `index.html` で衝突しないように）：
   ```yaml
   tpl_top    : _top.html
@@ -291,7 +307,9 @@ Read: <docroot>/themes/system/admin/config/entry/body_body.html
 - [ ] 変換前に `*_backup.html` を退避し、**変換後の表示を元（backup）と見比べた**（取りこぼし無し）。確認後はバックアップを掃除
 - [ ] 区分は意味で判定し category/tag/カスタムフィールドに正規化した（色やクラスはCSS側に残す）
 - [ ] 詳細本文はユニット表示に置換した（静的の本文マークアップをテンプレに残していない）
-- [ ] head 3行 ／ 管理BOX ／ `template.yaml` がある
+- [ ] head 3行 ／ `template.yaml` がある
+- [ ] **`@include("/admin/action.html")`（管理ページ入口）を全テンプレに入れた**＝`_top.html`・汎用 `index.html`/`_entry.html`・各 `<コード>/index.html`/`_entry.html`（フォールバック含め抜けなし）
+- [ ] **詳細テンプレ（Entry_Body）の `entry:loop` 内に `@include("/admin/entry/action.html")` を入れた**（ログイン時に編集フォーム／編集ボタンが出る）
 - [ ] `categoryField` の入れ子、ページャーの `pager:veil`、`datetime-desc` を守った
 - [ ] **格納カテゴリーを確定した**（無ければ②で作成を促した。テンプレにあるからCMSにもある、と仮定しない）
 - [ ] `SETUP.md` に ①テーマ ②カテゴリー ③モジュールID ④記事投入 を順番つきで書いた
@@ -307,6 +325,8 @@ Read: <docroot>/themes/system/admin/config/entry/body_body.html
 | 最終ページでも「もっと見る」が残る | `pager:veil` で囲っていない | veilで囲む |
 | 概要/画像が空 | Body側configがoff | `fulltext`/`image_on` を on |
 | 記事URLが静的のまま | リンクを`{url}`にしていない | `href="{url}"` |
+| **詳細ページに編集フォーム/編集ボタンが出ない**（ログインしても編集できない） | `Entry_Body` の `entry:loop` 内に `@include("/admin/entry/action.html")` が無い | loop 内に `Touch_Login` で囲って追加 |
+| **あるページから管理ページに入れない**（ログイン時の管理ボックスが出ない） | そのテンプレに `@include("/admin/action.html")` が無い（汎用 `index.html`/`_entry.html` で抜けがち） | 全テンプレに `Touch_Login` で囲って追加 |
 
 ---
 
